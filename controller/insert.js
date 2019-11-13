@@ -22,7 +22,7 @@ const insert = (email,name,pass) => {
 }
 
  const retrieve = (email, password) => {
-     return new Promise((resolve, reject) => {
+     return new Promise((resolve,reject) => {
         mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true})
         .then(() => console.log("Database connected"))
         .catch(() => console.log("Database connection error!!"));
