@@ -1,47 +1,94 @@
 const mongo = require('mongoose');
+const jwt = require('jsonwebtoken');
 const config = require('config');
 const student = require('../models/student');
 
 const db = "mongodb://localhost:27017/certificate";//config.get('mongoURI');
 
-//inserting new students
-const insert = (email,name,pass) => {
+const register = (email,name,pass) => {
     return new Promise((resolve, reject) => {
         //connection to mongodb
-        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true})
-        .then(() => console.log("Database connected"))
+        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
+        .then(() => {
+            console.log("Database connected")
+            const newstudent =  new student({
+                name: name,
+                email: email,
+                password: pass
+            });
+            newstudent.save().then(item => resolve(item)).catch(err => reject(err));
+            // mongo.connection.close();
+        })
         .catch(() => console.log("Database connection error!!"));
-        const newstudent =  new student({
-            name: name,
-            email: email,
-            password: pass
-        });
-        newstudent.save().then(item => resolve(item)).catch(err => reject(err));
-        //    mongo.connection.close();
     });
 }
 
- const retrieve = (email, password) => {
+ const login =  (email, password) => {
      return new Promise((resolve,reject) => {
-        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true})
-        .then(() => console.log("Database connected"))
+        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
+        .then(() => {
+            console.log("Database connected");
+            student.findOne({email: email}).exec((error,student) => {
+                if(error)
+                    reject(error);
+                else if(!student)
+                    reject({response: "There is no student!!!"});
+                else{
+                    if(password === student.password)
+                        //generation of jwt
+                       jwt.sign({username: student.name, password: student.password}, 'secretkey', {expiresIn: 300}, (err,token) =>{
+                           if(err)
+                               reject(err);
+                            else
+                                resolve(token);
+                       })
+                    else
+                        reject({response: "Invalid Password!!"});
+                }
+         });
+        })
         .catch(() => console.log("Database connection error!!"));
-        const idk =  student.findOne({email: email}).exec((error,student) => {
-            if(error)
-                reject(error);
-            else if(!student)
-                reject({response: "There is no student!!!"});
-            else{
-                if(password===student.password)
-                   resolve(true);
-                else
-                    resolve(false);                ;
-            }
-     })
     });
-   // mongo.connection.close();
  }
+
+const passwordreset =  (email, pass, newpass) => {
+    return new Promise( (resolve,reject) => {
+        mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
+        .then( () => {
+            console.log("Database connected");
+            student.findOne({email: email}).exec( (error,student1) => {
+                if(error)
+                    reject(error);
+                else if(!student1)
+                    reject({response: "There is no student!!!"});
+                else{
+                    if(pass === student1.password){
+                        console.log("hi");
+                        // mongo.connect(db,{useNewUrlParser:true, useCreateIndex: true, useFindAndModify: true, useUnifiedTopology: true })
+                        // .then( () => {
+                            student.findOneAndUpdate({email: email}, { $set: { password: newpass} },{new: true, passRawResult: true, useFindAndModify:true}, (error, doc, raw) => {
+                                if(error)
+                                   reject(error);
+                                else if(!doc)
+                                   reject({response: "There is no student!!!"});
+                                else
+                                  resolve({response: "The password has been updated"});
+                            });
+                        // }).catch(()=> {
+                        //     reject({response: "There is some issue!!!"});
+                        // })
+                    }
+                    else
+                    reject({response: "Invalid Password!!"});
+                }
+            });
+        })
+        .catch(() => console.log("Database connection error!!"));
+    });
+}
+
 module.exports = {
-    insert: insert,
-    retrieve: retrieve
+    register: register,
+    login: login,
+    passwordreset: passwordreset
 }
