@@ -1,7 +1,6 @@
 const mongo = require('mongoose');
 const jwt = require('jsonwebtoken');
-const config = require('config');
-const student = require('../models/student');
+const student = require('../db/models/student');
 
 const db = "mongodb://localhost:27017/certificate";//config.get('mongoURI');
 
@@ -17,7 +16,6 @@ const register = (email,name,pass) => {
                 password: pass
             });
             newstudent.save().then(item => resolve(item)).catch(err => reject(err));
-            // mongo.connection.close();
         })
         .catch(() => console.log("Database connection error!!"));
     });
